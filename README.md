@@ -1,99 +1,94 @@
 # model-router
 
-A reference document (not a library or CLI) for routing dispatched AI work to
-the right model: a portable **decision framework**, plus **example tables**
-you fill in with your own subscriptions, pricing, and eval data.
+A routing table you can pull into your own harness to decide which model
+handles delegated work — coordinator vs. implementer vs. reviewer, cheap vs.
+frontier, escalate or don't — instead of always dispatching to whatever
+model is already running the session.
 
-This started as a personal routing table living in one harness's agent
-config. Pulling it into its own repo makes the framework and the concrete
-per-harness tables reusable and shareable independent of any one tool or
-employer.
+## What you're installing
 
-## Why split framework from table
+| File | What it does |
+| --- | --- |
+| [`routing-table.md`](routing-table.md) | The framework and an empty table you fill in with your own models. Paste it into your `AGENTS.md`/`CLAUDE.md` as a new section. |
+| [`pi-model-router`](pi-model-router/) | A `pi` skill: teaches `pi` when to consult the table before an ad hoc `subagent` dispatch, fan-out, or escalation. |
+| [`claude-code-model-router`](claude-code-model-router/) | The same skill adapted for Claude Code's `Task` dispatch and `/model` escalation. |
 
-The framework — the axes you route on, and the order you apply them — is
-stable. The concrete table — which model id currently wins which axis, at
-what price — changes often: vendors reprice, promos expire, new models ship.
-Keeping the framework in prose and the table in a plain, editable block below
-means you can revise your assignments without touching the reasoning, and
-someone else can adopt the reasoning without inheriting your specific
-subscriptions.
+Only install the harness folder(s) you actually use. `routing-table.md` is
+required either way — the skills just tell an agent *when* to open it; they
+don't duplicate the table.
 
-> Nothing here calls a model or makes a network request. It's documentation
-> you apply yourself, or paste into an agent's system prompt / config.
+---
 
-## The framework
+## Installation
 
-Every task routes on two independent questions:
+### Option 1: ask your agent to install it
 
-1. **Tier — where it runs / what budget it draws on**
-   - **Local** — privacy-sensitive, offline, or high-volume work, if you have
-     a local model runtime.
-   - **Frontier subscription** — work covered by an included plan allowance.
-     Treat the allowance as a scarce budget even though it isn't itemized
-     per-call.
-   - **Frontier API** — separately metered, explicit opt-in. Not a default or
-     silent fallback.
+Paste this to your agent and it'll do the file moves for you:
 
-2. **Role — what seat the model holds**
-   - **Coordinator** — scopes, plans, prompts, reviews, verifies, merges.
-     Does not drift into implementation itself.
-   - **Implementer** — completes clear-spec, bounded work. Start with the
-     cheapest tier that clears the quality bar for the task.
-   - **Reviewer** — an adversarial pass in a fresh context that did not write
-     the work under review. Independence comes from fresh context and
-     adversarial framing, not from using a different vendor.
+```text
+Clone this repo to /tmp/ and set it up for me:
 
-Within a role, weigh whichever skill axis the task actually calls for:
+    git clone https://github.com/bdbaraban/model-router /tmp/model-router
 
-- **Bounded / clear-spec** (scope is already decided, it's mechanical or a
-  clear diff) → weigh **coding** skill.
-- **Open-ended / multi-tool** (the model must plan its own tool sequence,
-  ambiguous investigation, broad exploration) → weigh **orchestration**
-  skill.
-- **Taste-critical** (net-new visual/API/copy design) → weigh **taste**,
-  during generation, not only at review.
+1. Append the contents of /tmp/model-router/routing-table.md to my AGENTS.md
+   (or CLAUDE.md) as a new section, verbatim — don't reword, summarize, or
+   shorten it. If a "Model routing for dispatched work" section already
+   exists there, ask me before overwriting it instead of duplicating it.
+2. Ask me which harness(es) I use: pi, Claude Code, or both.
+3. For each harness I name, copy that harness's skill folder
+   (pi-model-router/ or claude-code-model-router/) into wherever that
+   harness's skills live on this machine (usually ~/.pi/agent/skills/ for
+   pi, ~/.claude/skills/ for Claude Code — ask me if you can't tell), and
+   rename the copied folder to model-router/ so its skill name matches its
+   frontmatter.
+4. Copy the SKILL.md exactly as written — don't rewrite, reword, or improve
+   it, it's a prompt and the wording is deliberate.
+5. Once installed, go fill in the table in AGENTS.md/CLAUDE.md with models
+   you actually have access to — the shipped table is empty on purpose.
+6. Tell me in one short paragraph what got installed and what I still need
+   to fill in myself.
+```
 
-Then: **prefer the cheapest model that clears the bar for the relevant axis.**
-Escalate to a pricier/higher-taste model only when the task is genuinely hard
-on that axis — not by default, and never by escalating the coordinator seat
-itself for a single task (escalate the one delegated call instead).
+### Option 2: do it yourself
 
-## Example table (fill in your own)
+```sh
+git clone https://github.com/bdbaraban/model-router
+cd model-router
 
-The rows below are illustrative placeholders, not a recommendation — replace
-model ids, tiers, and scores with what's actually available to you and your
-own read of pricing/evals. Scores are 1–10 on each axis.
+# 1. Add the routing table to your agent config
+cat routing-table.md >> ~/AGENTS.md   # or wherever your AGENTS.md/CLAUDE.md lives
 
-| role | axis | example model | tier | notes |
-|---|---|---|---|---|
-| Coordinator | orchestration | *your mid-cost general model* | frontier subscription | Plans and dispatches; doesn't implement inline. |
-| Bulk / mechanical implementer | coding | *your cheapest capable model* | frontier subscription or API | Clear, bounded changes; escalate only on failure. |
-| Hard-but-bounded implementer | coding | *your top coding-tier model* | frontier API | Deliberate use for genuinely difficult, clearly-scoped work. |
-| Open-ended / exploratory | orchestration | *your top orchestration-tier model* | frontier subscription or API | Ambiguous investigation, multi-tool planning. |
-| Reviewer (fresh context) | matches the diff's dominant axis | *independent of whoever authored the diff* | any | Inspect the diff and tests; don't ask it to redo the implementation. |
-| Taste-critical generation | taste | *your highest-taste model* | frontier subscription or API | Net-new visual/API/copy design, spent deliberately. |
+# 2. Install the skill(s) for the harness(es) you use
+cp -R pi-model-router ~/.pi/agent/skills/model-router
+cp -R claude-code-model-router ~/.claude/skills/model-router
+```
 
-## Per-harness notes
+Then open the table you just pasted in and replace the empty rows with
+models you can actually invoke, their ids, and your own read of their cost
+and skill on each axis.
 
-Different harnesses expose different levers for the same decision:
+> **Read the SKILL.md before you install it**, not just the folder name. The
+> wording is what makes an agent actually reach for it instead of ignoring
+> it — retype the parts that don't match how you work rather than installing
+> it blind.
 
-- Some tools take a per-call model override plus an explicit effort/thinking
-  level (e.g. off/low/medium/high).
-- Others default to a fixed session model and expect you to invoke a
-  different tool/CLI directly for an alternate vendor, rather than passing a
-  model parameter.
+## Why the table ships empty
 
-Translate the table above into whatever your harness's actual invocation
-shape is — a model id plus, if supported, an effort level chosen the same way
-you chose the model (cheap default, escalate deliberately).
+Concrete model assignments go stale fast — vendors reprice, promos expire,
+new models ship. The decision procedure (tier × role × axis, cheapest-that-
+clears-the-bar, deliberate escalation) is the part worth sharing; the actual
+model ids and scores are yours to own and revise on your own schedule.
 
-## Adapting this
+## Adding another harness
 
-1. Copy the example table and replace it with models you can actually invoke.
-2. Note your pricing basis and revisit it on a cadence — this drifts fast.
-3. Keep the framework section as-is unless your actual reasoning changes;
-   keep the table as the part you expect to edit often.
+1. Copy an existing skill folder (`pi-model-router/` or
+   `claude-code-model-router/`) as a starting point.
+2. Rewrite the "Label and dispatch" and "Pick within budget" steps to match
+   that harness's actual dispatch mechanism (subagent tool, Task tool, a
+   CLI flag, whatever it has).
+3. Keep the classification logic (step 2) and the "judge the result, not the
+   price" closing principle — those don't change per harness.
+4. Send a PR.
 
 ## License
 
