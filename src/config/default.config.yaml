@@ -1,0 +1,38 @@
+# Illustrative starter data only. Replace scores, costs, and model IDs with
+# models you can actually invoke and pricing/evaluation data you trust.
+thresholds:
+  low: 4
+  medium: 6
+  high: 8
+  escalated: 10
+models:
+  - id: provider/small
+    name: Example small model
+    tier: frontier-api
+    cost: 1
+    scores: { cost: 10, coding: 4, orchestration: 3, taste: 3 }
+    notes: Illustrative placeholder; replace with an available model.
+  - id: provider/medium
+    name: Example medium model
+    tier: frontier-api
+    cost: 4
+    scores: { cost: 7, coding: 6, orchestration: 6, taste: 5 }
+    notes: Illustrative placeholder; replace with an available model.
+  - id: provider/large
+    name: Example large model
+    tier: frontier-api
+    cost: 10
+    scores: { cost: 3, coding: 9, orchestration: 9, taste: 8 }
+    notes: Illustrative placeholder; replace with an available model.
+  - id: anthropic/claude-sonnet-5
+    name: Claude Sonnet 5
+    tier: frontier-subscription
+    cost: 5
+    scores: { cost: 6, coding: 8, orchestration: 8, taste: 8 }
+    notes: Example public model identifier; scores are illustrative, not an evaluation claim.
+  - id: openai/gpt-5.6-terra
+    name: GPT-5.6 Terra
+    tier: frontier-subscription
+    cost: 6
+    scores: { cost: 5, coding: 8, orchestration: 8, taste: 7 }
+    notes: Example public model identifier; scores are illustrative, not an evaluation claim.
