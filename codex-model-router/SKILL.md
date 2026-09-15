@@ -31,12 +31,12 @@ encodes the *decision procedure*, not the numbers.
   authored the diff; model choice follows whichever axis above the *content*
   under review calls for.
 
-## 3. Pick within budget, and pin it explicitly
+## 3. Pick within budget, and pin it explicitly — but only among OpenAI models directly
 
-Prefer the cheapest model that clears the bar for the classified axis — escalate
-only when the task is genuinely hard on that axis, not by default. Always pin
-the model and effort explicitly on the command line; never rely on inherited
-`config.toml` defaults:
+Prefer the cheapest OpenAI model that clears the bar for the classified
+axis — escalate only when the task is genuinely hard on that axis, not by
+default. Always pin the model and effort explicitly on the command line;
+never rely on inherited `config.toml` defaults:
 
 ```bash
 codex exec \
@@ -56,6 +56,27 @@ review pass that's hunting for what's wrong. Use `-s read-only` for review,
 when the run genuinely needs access outside the repo (GUI automation,
 simulators, package-manager global state). `--ephemeral` avoids retaining the
 delegated run as a user session.
+
+Codex CLI is OpenAI-native: `codex exec -m` only takes models the CLI's
+provider serves. If the table names a Claude model (`sonnet-5`, `opus-5`,
+`fable-5.1`) as the best fit — most often for orchestration or taste-
+critical work — don't substitute an OpenAI model just because it's reachable
+from this shell; reach the real target through a wrapper instead (step 3a).
+
+## 3a. Reaching a Claude model from a Codex CLI session
+
+Shell out to the Claude CLI in headless/print mode with an explicit model
+and a self-contained prompt, and capture its output as the report:
+
+```bash
+claude --model sonnet -p "$(cat "$PROMPT")" > "$REPORT"
+```
+
+Swap `--model sonnet` for `opus`/`fable` per the table's pick. Label the
+artifact/report directory by the real worker (e.g.
+`claude-dispatch.opus-5.XXXXXX`) so it's clear which vendor actually did the
+work, since a Codex CLI run otherwise has no visibility into what a shelled-
+out process used.
 
 ## 4. Label and dispatch
 

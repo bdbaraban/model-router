@@ -71,18 +71,31 @@ Scores are 1–10, higher = better. `cost` is inverse (higher = cheaper).
   review — a separate subagent or a new context with an adversarial prompt.
   Same model is fine; independence comes from fresh context, not vendor.
 
-## Coordinator seat depends on your entry point
+## The driver constraint
 
-If you run more than one harness, the coordinator seat moves with whichever
-one you started the session in — it isn't pinned to one model:
+The table above is vendor-agnostic, but most harnesses aren't — only pick a
+coordinator/driver model your harness can actually run natively, and treat
+every other vendor's model as something you reach through a wrapper, not a
+direct dispatch:
 
-- Through a cross-vendor orchestrator (e.g. `pi`): that harness holds the
-  seat over the whole task graph. A different harness gets invoked
-  deliberately — as an independent reviewer, or for harness-specific taste/
-  interactive work — and returns control rather than self-coordinating.
-- Directly inside a single-vendor harness (no orchestrator): that harness
-  holds the seat for the session and dispatches implementation to whichever
-  model the table names, via that harness's own skill/tool for it.
+- **pi is vendor-agnostic.** It invokes any model in the table directly, so
+  the coordinator/driver is whichever row wins on cost/role fit — no wrapper
+  needed either direction. This is the harness where the full table applies
+  unmodified.
+- **Claude Code is Anthropic-native.** The driver is always whichever Claude
+  model is running the session (`sonnet-5` baseline). Reaching an OpenAI-
+  family model (`gpt-5.6-*`) means spawning a thin Claude wrapper subagent
+  that shells out to that model's CLI and relays the report — see
+  `claude-code-model-router` for the exact mechanism.
+- **Codex CLI is OpenAI-native.** The driver is always whichever model is
+  running the `codex exec` session (`gpt-5.6-terra` baseline). Reaching a
+  Claude model means spawning a wrapper that shells out to the Claude CLI
+  and relays the report — see `codex-model-router` for the exact mechanism.
+
+Don't invert this: never make an OpenAI model the driver inside Claude Code,
+or a Claude model the driver inside Codex CLI, just because the table ranks
+it higher on some axis. The driver is whatever's actually running the
+session; only *dispatched* work crosses vendors, and only through a wrapper.
 
 ## Protect your allowance
 

@@ -35,13 +35,19 @@ encodes the *decision procedure*, not the numbers.
   under review calls for (coding-heavy diff → `coding`; architecture/taste →
   the corresponding axis at high effort).
 
-## 3. Pick within budget
+## 3. Pick within budget — across the whole table, no wrapper needed
 
 Prefer the cheapest model that clears the bar for the classified axis (see
 `cost` column) — escalate only when the task is genuinely hard on that axis,
 not by default. Never escalate the *coordinator/driver* model itself for a
 single task; escalate the one subagent call instead (a session-wide model
 escalation is a separate, deliberate decision — see `AGENTS.md`).
+
+pi is vendor-agnostic: unlike a single-vendor harness, it can dispatch a
+subagent to any model in the table directly — OpenAI-family or Claude-
+family — with no wrapper process in between. This is the one harness where
+the full table applies unmodified; see "The driver constraint" in
+`routing-table.md` for how Claude Code and Codex CLI differ.
 
 ## 4. Label and dispatch
 

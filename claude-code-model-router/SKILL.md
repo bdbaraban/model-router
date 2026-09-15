@@ -33,13 +33,41 @@ encodes the *decision procedure*, not the numbers.
   under review calls for (coding-heavy diff → `coding`; architecture/taste →
   the corresponding axis at high effort).
 
-## 3. Pick within budget
+## 3. Pick within budget — but only among Claude models directly
 
-Prefer the cheapest model that clears the bar for the classified axis (see
-`cost` column) — escalate only when the task is genuinely hard on that axis,
-not by default. Never escalate the coordinating session's model for a single
-task; escalate the one delegated `Task` call instead. A full session
+Prefer the cheapest Claude model that clears the bar for the classified axis
+(see `cost` column) — escalate only when the task is genuinely hard on that
+axis, not by default. Never escalate the coordinating session's model for a
+single task; escalate the one delegated `Task` call instead. A full session
 `/model` switch is a separate, deliberate decision — see `CLAUDE.md`.
+
+Claude Code is Anthropic-native: its `Task`/`model` parameter only accepts
+Claude models. If the table names an OpenAI-family model (`gpt-5.6-*`) as
+the best fit for this task, don't substitute a Claude model just because
+it's reachable — reach the real target through a wrapper instead (step 3a).
+
+## 3a. Reaching an OpenAI-family model from a Claude Code session
+
+Spawn a thin Claude wrapper subagent (`model: sonnet`, low effort) whose
+only job is to write a self-contained prompt, run it through that model's
+CLI, and relay the result — it does not do the work itself:
+
+```bash
+codex exec \
+  -C "$PWD" \
+  -m gpt-5.6-terra \
+  -c model_reasoning_effort="medium" \
+  -s workspace-write \
+  --ephemeral \
+  -o "$REPORT" \
+  - < "$PROMPT"
+```
+
+Label the wrapper by the *real* worker, not the wrapper's own model — e.g.
+`gpt-5.6-terra:review-auth` — since the session UI otherwise only shows the
+wrapper's Claude model. Codex runs can exceed a tool call's default timeout;
+pass an explicit timeout or poll a report file in the background. Parallel
+wrapper-dispatched runs need separate worktrees so edits don't collide.
 
 ## 4. Label and dispatch
 

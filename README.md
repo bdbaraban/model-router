@@ -8,9 +8,9 @@ harness's config instead of living only in one machine's `AGENTS.md`.
 | File | Purpose |
 | --- | --- |
 | [`routing-table.md`](routing-table.md) | The actual rules: two-axis framework, a real filled-in model table, delegation stance, allowance/budget discipline, and how I evaluate and revise the table over time. Goes in `AGENTS.md`/`CLAUDE.md`. |
-| [`pi-model-router`](pi-model-router/) | Skill: consult the table before an ad hoc `pi` `subagent` dispatch, fan-out, or escalation. |
-| [`claude-code-model-router`](claude-code-model-router/) | Skill: same, for Claude Code's `Task` dispatch and `/model` escalation. |
-| [`codex-model-router`](codex-model-router/) | Skill: same, for a `codex exec` dispatch — pins `-m` and `-c model_reasoning_effort` per the table instead of relying on `config.toml` defaults. |
+| [`pi-model-router`](pi-model-router/) | Skill: consult the table before an ad hoc `pi` `subagent` dispatch, fan-out, or escalation. pi is vendor-agnostic, so the full table applies directly — no wrapper needed. |
+| [`claude-code-model-router`](claude-code-model-router/) | Skill: same, for Claude Code's `Task` dispatch and `/model` escalation. Claude Code is Anthropic-native — reaching an OpenAI-family model means spawning a wrapper subagent that shells out to it. |
+| [`codex-model-router`](codex-model-router/) | Skill: same, for a `codex exec` dispatch — pins `-m` and `-c model_reasoning_effort` per the table. Codex CLI is OpenAI-native — reaching a Claude model means shelling out to the Claude CLI. |
 
 Install `routing-table.md` regardless of harness. The skill folders are just
 per-harness triggers that point back at it — install only the ones for
