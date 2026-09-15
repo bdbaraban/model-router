@@ -69,8 +69,15 @@ Shell out to the Claude CLI in headless/print mode with an explicit model
 and a self-contained prompt, and capture its output as the report:
 
 ```bash
-claude --model sonnet -p "$(cat "$PROMPT")" > "$REPORT"
+claude --model sonnet -p < "$PROMPT" > "$REPORT"
 ```
+
+(Verified against the installed `claude` CLI: with no positional prompt
+argument, `-p`/`--print` reads the prompt from stdin, and `--model` takes an
+alias — `sonnet`, `opus`, `fable` — or a full model name. Don't pass a
+literal `-` as the positional prompt argument as a stdin marker the way
+`codex exec -` works — that wasn't confirmed here and may just send the
+literal string `"-"` as the prompt instead of reading stdin.)
 
 Swap `--model sonnet` for `opus`/`fable` per the table's pick. Label the
 artifact/report directory by the real worker (e.g.
