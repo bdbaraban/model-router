@@ -1,44 +1,133 @@
 # routing-table.md
 
-> **Standing instructions to paste into your `AGENTS.md` or `CLAUDE.md` to route dispatched work to the right model.**
+Paste this section into your `AGENTS.md`/`CLAUDE.md`. Edit the model names,
+scores, and subscriptions to match what you actually pay for and have access
+to — the values below are a real personal table, not a schema example, but
+they're specific to one person's machine and accounts.
 
-> Copy the block, paste it into your instructions file, and edit the model names and scores to match what you actually have access to.
+## Two axes
 
----
+Every dispatch decision is two independent questions, not one:
 
-# Picking the Right Models for Workflows and Subagents
+- **Tier — what budget it draws on.** `local` (a runtime you host, for
+  privacy-sensitive or high-volume work), `frontier-subscription` (included
+  in a plan allowance — a scarce, shared budget, not free), or
+  `frontier-api` (separately metered — an explicit opt-in, never a silent
+  fallback when a subscription allowance runs out).
+- **Role — what seat the model holds.** `coordinator` (scopes, plans,
+  prompts, reviews, verifies, merges — never drifts into implementation),
+  `implementer` (completes clear-spec work, starting at the cheapest tier
+  that clears the bar), `reviewer` (an adversarial pass in a fresh context
+  that didn't write the work under review).
 
-Scores are 1–10, higher = better. `cost` reflects what you actually pay, not list price. `coding` is bounded-task/solve-rate skill — how far you can hand a scoped diff unsupervised. `orchestration` is multi-step tool-use/planning skill — what a subagent needs to plan its own tool sequence. `taste` covers UI/UX, code quality, API design, and copy.
+Within `implementer`/`reviewer`, weigh whichever skill axis the task calls
+for: `coding` for a scoped diff, `orchestration` for a task that has to plan
+its own tool sequence, `taste` for net-new visual/API/copy design.
 
-| model | id | cost | coding | orchestration | taste |
-|-------|----|------|--------|---------------|-------|
-| gpt-5.6-luna  | `openai/gpt-5.6-luna`  | 10 | 7  | 5 | 4  |
-| gpt-5.6-terra | `openai/gpt-5.6-terra` | 9  | 8  | 7 | 6  |
-| gpt-5.6-sol   | `openai/gpt-5.6-sol`   | 8  | 10 | 9 | 7  |
-| sonnet-5      | `anthropic/claude-sonnet-5`  | 5 | 6 | 7 | 7  |
-| opus-5        | `anthropic/claude-opus-5`    | 4 | 9 | 9 | 8  |
-| fable-5.1     | `anthropic/claude-fable-5-1` | 2 | 9 | 8 | 10 |
+## The table
 
-How to apply:
+Scores are 1–10, higher = better. `cost` is inverse (higher = cheaper).
 
-- **The coordinator never implements inline; implementation is dispatched, routed by work type.** Whichever model runs the session holds the coordinator seat — scope, plan, prompt, review, verify, merge. Coordinating is the seat, not a fixed model. Cheaper, agentic-workhorse-tier models (`sonnet-5`) make good coordinator defaults on cost and role-fit grounds, not just cost; save the premium reasoning tier (`opus-5`, `fable-5.1`) for dispatched work that actually needs it.
-- **Mechanical / backend / logic / bulk / migrations / clear-spec** — bounded, single-shot tasks: weigh `coding` over `orchestration` → the cheapest model that clears your coding bar (`gpt-5.6-terra`), medium effort. For high-volume, low-ambiguity recon/lookup work, try an even cheaper tier first (`gpt-5.6-luna`) before falling back up if quality suffers.
-- **Hard-but-bounded / oracle-tier work** — explicit goal and completion criteria, but genuinely difficult: still `coding`-led → your top coding-tier model (`gpt-5.6-sol`), high effort. Reserve the priciest tier for when the task is genuinely hard, or is specific to a model family you're already deep in (matching an existing conversation/context).
-- **Open-ended / multi-tool exploratory work** — ambiguous investigation, broad exploration, a subagent that has to plan its own tool sequence rather than execute a pre-scoped diff: weigh `orchestration` over `coding` → your top orchestration-tier model (`opus-5` or `gpt-5.6-sol`) first; a cheaper coordinator-tier model is the fallback when the exploration is narrow enough not to need the top tier.
-- **UI / user-facing** — still dispatch to a coding-led model (bounded implementation), but enforce the taste bar (≥ 7) at *review*: judge the rendered result against the mocks/spec and iterate. Dispatch a high-taste model instead only when taste must be exercised *during generation* — net-new visual design, copywriting, API shape.
-- **Effort:** medium for execution, high for the adversarial review pass; pin it explicitly per run rather than letting it inherit a default.
-- These are defaults, not limits — escalate to a smarter/higher-taste model without asking if output misses the bar. Judge the output, not the price.
+| model | id | tier | cost | coding | orchestration | taste |
+|-------|----|------|------|--------|---------------|-------|
+| gpt-5.6-luna  | `openai/gpt-5.6-luna`  | frontier-subscription | 10 | 7  | 5 | 4  |
+| gpt-5.6-terra | `openai/gpt-5.6-terra` | frontier-subscription | 9  | 8  | 7 | 6  |
+| gpt-5.6-sol   | `openai/gpt-5.6-sol`   | frontier-api          | 8  | 10 | 9 | 7  |
+| sonnet-5      | `anthropic/claude-sonnet-5`  | frontier-subscription | 5 | 6 | 7 | 7  |
+| opus-5        | `anthropic/claude-opus-5`    | frontier-subscription | 4 | 9 | 9 | 8  |
+| fable-5.1     | `anthropic/claude-fable-5-1` | frontier-subscription | 2 | 9 | 8 | 10 |
 
-Review runs in a fresh context that didn't write the code — a separate subagent, or a new ephemeral run with an adversarial prompt. Same model is fine; independence comes from fresh context and adversarial framing, not model class. Never review your own diff inside the context that produced it.
+## How to apply it
 
-Dispatching subagents (conventions):
+- **Coordinator never implements inline.** Whichever model is running your
+  session holds that seat — scope, plan, prompt, review, verify, merge —
+  and dispatches everything else. Which model holds it depends on your entry
+  point, not a fixed assignment (see below).
+- **Bounded / mechanical / clear-spec** → weigh `coding`, pick the cheapest
+  model that clears your bar (`gpt-5.6-terra`), medium effort. For
+  high-volume, low-ambiguity recon (greps, lookups), try a cheaper tier
+  first (`gpt-5.6-luna`) and fall back up only if quality suffers.
+- **Hard-but-bounded** — clear goal, genuinely difficult → still `coding`-led,
+  your top coding tier (`gpt-5.6-sol`), high effort. Deliberate, not default.
+- **Open-ended / multi-tool exploration** → weigh `orchestration`, your top
+  orchestration tier (`opus-5` or `gpt-5.6-sol`) first; a cheaper coordinator-
+  tier model when the exploration is narrow enough not to need it.
+- **User-facing work** still gets dispatched to a coding-led model; enforce
+  the taste bar (≥ 7) at *review* by judging the rendered result against a
+  spec/mock and iterating. Reach for a high-taste model at generation time
+  only when taste has to be exercised while writing the thing itself.
+- These are defaults, not limits — escalate without asking when the output
+  misses the bar for the axis that mattered. Judge the result, not the price.
 
-- Route delegated work using the table above. Default to the tier this rubric dictates — you have standing permission to pick it without asking. For a multi-agent fan-out, state the per-wave model choice up front so it's visible.
-- **Titles are `model:title` delimited:** every subagent's display title starts with the model it runs on, colon-delimited — `sonnet-5:transplant-trace`, `gpt-5.6-terra:review-auth` — so a dispatch shows at a glance which model each agent is on.
+## Dispatch is the default, not an ask
+
+- Dispatch by default; don't hold work inline because it feels small.
+  Edit inline only when writing the delegation prompt would cost more than
+  the change itself — a genuine one-liner, or a ≤5-line fix already under
+  review. Everything else gets dispatched.
+- Never ask permission before delegating — it's the default action, not an
+  opt-in the user approves each time.
+- Review always runs in a fresh context that didn't write the code under
+  review — a separate subagent or a new context with an adversarial prompt.
+  Same model is fine; independence comes from fresh context, not vendor.
+
+## Coordinator seat depends on your entry point
+
+If you run more than one harness, the coordinator seat moves with whichever
+one you started the session in — it isn't pinned to one model:
+
+- Through a cross-vendor orchestrator (e.g. `pi`): that harness holds the
+  seat over the whole task graph. A different harness gets invoked
+  deliberately — as an independent reviewer, or for harness-specific taste/
+  interactive work — and returns control rather than self-coordinating.
+- Directly inside a single-vendor harness (no orchestrator): that harness
+  holds the seat for the session and dispatches implementation to whichever
+  model the table names, via that harness's own skill/tool for it.
+
+## Protect your allowance
+
+- Default to included subscription access; API spend is a deliberate,
+  separately-tracked opt-in, not a fallback when an allowance runs low.
+- A chat-app subscription is not API credit for that same vendor — check
+  whether your plan actually covers the invocation path you're about to use
+  before assuming it does.
+- When an allowance is exhausted, stop and wait for reset by default.
+  Buying credits, enabling API billing, or adding another subscription is an
+  explicit decision made after looking at real usage, not a silent fallback.
+- Keep dispatch specs narrow and avoid redundant fan-outs — a premium tier
+  spent on broad, unscoped exploration burns budget for no better answer
+  than a cheaper, narrower spec would have gotten.
+- A latency/priority flag (e.g. a "fast" mode some providers expose) is a
+  speed lever, not a tier swap — reach for it when you're already on the
+  right model but turnaround is too slow, never as a substitute for picking
+  the right tier in the first place.
+
+## Evaluating and updating this table
+
+The table goes stale faster than the rules above it. When you revise it:
+
+- **Weigh the axis-appropriate benchmark**, not a single leaderboard for
+  everything: bounded-task solve-rate benchmarks (e.g. SWE-bench Verified/
+  agentic, a coding-agent index) for `coding`; multi-step tool-use/agentic
+  benchmarks (e.g. an agentic index, Terminal-Bench, a long-horizon agent
+  eval) for `orchestration`.
+- **Verify pricing and eval claims against the vendor's own pricing/docs
+  page**, not a blog post or aggregator — third-party summaries are
+  frequently wrong about what a given plan actually includes.
+- **Keep a small personal eval set** — a handful of real, recurring tasks
+  you actually do — and rerun it when a model, allowance, or client changes.
+  Revise the table from those results (quality, retries, elapsed time,
+  allowance burned) more than from published benchmarks alone; a benchmark
+  tells you what a model can do in general, your own recurring tasks tell
+  you what it does for *your* work.
+- Escalate the ladder in order when a cheaper tier stops clearing the bar
+  (e.g. `luna → terra → sol`), rather than jumping straight to the top tier
+  by habit.
 
 ## Effort/thinking levels
 
-Vendors default higher than you might expect for a subagent seat — set effort explicitly per role rather than relying on inherited defaults:
+Vendors default higher than you might expect for a subagent seat — set
+effort explicitly per role rather than relying on inherited defaults:
 
 | role | model | thinking | why |
 |------|-------|----------|-----|
@@ -49,10 +138,22 @@ Vendors default higher than you might expect for a subagent seat — set effort 
 | oracle / hard-but-bounded | gpt-5.6-sol | `high`, escalate to `xhigh` only when evals show a clear win | only escalate further when there's evidence it helps |
 | adversarial review | opus-5 | `high` | independent review is worth the premium tier |
 
-Same escalation philosophy as model choice: dynamic beats static. Don't hold a session at `high`/`xhigh` by default — reserve escalation for the turn that actually needs it, then drop back down.
+Don't hold a session at `high`/`xhigh` by default — reserve escalation for
+the turn that actually needs it, then drop back down.
 
 ## Mechanics
 
-- `gpt-5.6-*` models are reached through whichever OpenAI-compatible provider account you have access to — pass the model straight to your harness's model parameter (e.g. `{ model: "openai/gpt-5.6-terra" }`).
-- `sonnet-5` / `opus-5` / `fable-5.1` run via your harness's own model parameter for Claude models.
-- Label every dispatch `model:title` so the running model is visible at a glance, and state the per-wave model up front for any fan-out rather than silently inheriting the session model.
+- `gpt-5.6-*` models are reached through whichever OpenAI-compatible
+  provider account you have access to — pass the model straight to your
+  harness's model parameter (e.g. `{ model: "openai/gpt-5.6-terra" }`).
+- `sonnet-5` / `opus-5` / `fable-5.1` run via your harness's own model
+  parameter for Claude models.
+- Label every dispatch `model:title` so the running model is visible at a
+  glance, and state the per-wave model up front for any fan-out rather than
+  silently inheriting the session model.
+- A CLI-driven agent (e.g. `codex exec`) generally can't drive a real
+  browser by itself — there's no browser backend behind a headless CLI run.
+  For screenshot/design-mock verification, use whatever browser-attached
+  path your setup has (an in-app browser tool in a desktop client, or a
+  headless automation script you run and hand the screenshots to the
+  agent) rather than assuming a bare CLI call can do it.

@@ -6,19 +6,18 @@ user_invocable: true
 
 # Codex model router
 
-The routing table in your `AGENTS.md` ("Picking the Right Models for
-Workflows and Subagents") is advisory — nothing in Codex CLI enforces it.
-This skill exists so every `codex exec` dispatch actively consults the table
-instead of relying on `config.toml` defaults, which interactive CLI use can
-mutate.
+The routing table pasted from `routing-table.md` into your `AGENTS.md` is
+advisory — nothing in Codex CLI enforces it. This skill exists so every
+`codex exec` dispatch actively consults the table instead of relying on
+`config.toml` defaults, which interactive CLI use can mutate.
 
 ## 1. Read the current table
 
-Read `AGENTS.md`, section "Picking the Right Models for Workflows and
-Subagents," for the live `cost` / `coding` / `orchestration` / `taste` table
-and per-model ids. Don't hardcode scores here — that table gets revised as
-pricing/evals change; this skill only encodes the *decision procedure*, not
-the numbers.
+Read `AGENTS.md` for the `cost` / `coding` / `orchestration` / `taste` table
+and per-model ids pasted in from `routing-table.md`. Don't hardcode scores
+here — that table gets revised as pricing/evals change (see
+"Evaluating and updating this table" in `routing-table.md`); this skill only
+encodes the *decision procedure*, not the numbers.
 
 ## 2. Classify the task
 
@@ -66,6 +65,11 @@ later reviewer can see at a glance which tier produced it (e.g.
 shell's default timeout — pass an explicit timeout, or run in the background
 and poll for the report file. Parallel runs must use separate worktrees so
 edits don't collide in a shared checkout.
+
+A bare `codex exec` run can't drive a real browser — there's no browser
+backend behind a headless CLI call. Route any screenshot/design-mock
+verification through a browser-attached path instead (see "Mechanics" in
+`routing-table.md`).
 
 ## 5. Judge the result, not the price
 

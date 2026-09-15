@@ -5,8 +5,8 @@ description: Pick which model to pass to an ad hoc subagent dispatch (one not co
 
 # Model router
 
-The routing table in your `AGENTS.md` ("Picking the Right Models for Workflows and Subagents")
-is advisory — only `~/.pi/agent/settings.json`
+The routing table pasted from `routing-table.md` into your `AGENTS.md` is
+advisory — only `~/.pi/agent/settings.json`
 (`subagents.agentOverrides`, `watchdog.main/children`) is mechanically
 enforced. Named roles (`context-builder`, `planner`, `researcher`, `oracle`,
 `worker`) already resolve their model from settings automatically. This skill
@@ -16,11 +16,11 @@ picked except actively consulting the table.
 
 ## 1. Read the current table
 
-Read `AGENTS.md`, section "Picking the Right Models for Workflows and
-Subagents," for the live
-`cost` / `coding` / `orchestration` / `taste` table and per-model ids. Don't
-hardcode scores here — that table gets revised as pricing/evals change; this
-skill only encodes the *decision procedure*, not the numbers.
+Read `AGENTS.md` for the `cost` / `coding` / `orchestration` / `taste` table
+and per-model ids pasted in from `routing-table.md`. Don't hardcode scores
+here — that table gets revised as pricing/evals change (see
+"Evaluating and updating this table" in `routing-table.md`); this skill only
+encodes the *decision procedure*, not the numbers.
 
 ## 2. Classify the task
 
