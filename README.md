@@ -1,94 +1,100 @@
 # model-router
 
-A small, configurable TypeScript engine for choosing an LLM for a task, then
-translating that decision into a harness-specific invocation. It supplies a
-transparent selection policy and example drivers for pi and Claude Code; it
-does not make model calls.
+A reference document (not a library or CLI) for routing dispatched AI work to
+the right model: a portable **decision framework**, plus **example tables**
+you fill in with your own subscriptions, pricing, and eval data.
 
-## Why
+This started as a personal routing table living in one harness's agent
+config. Pulling it into its own repo makes the framework and the concrete
+per-harness tables reusable and shareable independent of any one tool or
+employer.
 
-Routing tables change frequently as pricing, availability, and evaluation data
-change. Separating the selection engine from configuration lets teams revise
-and share their data independently of routing logic and harness integrations.
+## Why split framework from table
 
-> The shipped default configuration is **illustrative, not authoritative**.
-> Populate it with models you can access, your own pricing basis, and scores
-> from evaluations you trust.
+The framework — the axes you route on, and the order you apply them — is
+stable. The concrete table — which model id currently wins which axis, at
+what price — changes often: vendors reprice, promos expire, new models ship.
+Keeping the framework in prose and the table in a plain, editable block below
+means you can revise your assignments without touching the reasoning, and
+someone else can adopt the reasoning without inheriting your specific
+subscriptions.
 
-## Install
+> Nothing here calls a model or makes a network request. It's documentation
+> you apply yourself, or paste into an agent's system prompt / config.
 
-```sh
-npm install model-router
-```
+## The framework
 
-## Library usage
+Every task routes on two independent questions:
 
-```ts
-import { classifyTask, loadConfig, selectModel } from "model-router";
-import { toPiInvocation } from "model-router/drivers";
+1. **Tier — where it runs / what budget it draws on**
+   - **Local** — privacy-sensitive, offline, or high-volume work, if you have
+     a local model runtime.
+   - **Frontier subscription** — work covered by an included plan allowance.
+     Treat the allowance as a scarce budget even though it isn't itemized
+     per-call.
+   - **Frontier API** — separately metered, explicit opt-in. Not a default or
+     silent fallback.
 
-const config = await loadConfig("./node_modules/model-router/src/config/default.config.yaml");
-const task = classifyTask("Implement a bounded TypeScript migration", {
-  role: "implementer",
-  axis: "coding",
-  difficulty: "medium",
-});
-const decision = selectModel(task, config, { allowedTiers: ["frontier-api"] });
-const invocation = toPiInvocation(decision);
-// { model: "provider/medium", thinking: "medium" }
-```
+2. **Role — what seat the model holds**
+   - **Coordinator** — scopes, plans, prompts, reviews, verifies, merges.
+     Does not drift into implementation itself.
+   - **Implementer** — completes clear-spec, bounded work. Start with the
+     cheapest tier that clears the quality bar for the task.
+   - **Reviewer** — an adversarial pass in a fresh context that did not write
+     the work under review. Independence comes from fresh context and
+     adversarial framing, not from using a different vendor.
 
-`classifyTask` is deliberately a documented, small heuristic rather than magic
-NLP. For dependable automation, provide its `role`, `axis`, and `difficulty`
-explicitly. The selector filters unavailable/budget-exceeding models, requires
-the requested skill score, then chooses the cheapest qualifying candidate.
-Use `escalate: true` only for work that genuinely needs a higher bar.
+Within a role, weigh whichever skill axis the task actually calls for:
 
-## CLI
+- **Bounded / clear-spec** (scope is already decided, it's mechanical or a
+  clear diff) → weigh **coding** skill.
+- **Open-ended / multi-tool** (the model must plan its own tool sequence,
+  ambiguous investigation, broad exploration) → weigh **orchestration**
+  skill.
+- **Taste-critical** (net-new visual/API/copy design) → weigh **taste**,
+  during generation, not only at review.
 
-```sh
-model-router pick --role implementer --axis coding --budget medium --driver pi
-model-router pick --role reviewer --axis orchestration --budget high --driver claude-code --config ./models.private.yaml
-```
+Then: **prefer the cheapest model that clears the bar for the relevant axis.**
+Escalate to a pricier/higher-taste model only when the task is genuinely hard
+on that axis — not by default, and never by escalating the coordinator seat
+itself for a single task (escalate the one delegated call instead).
 
-The command prints JSON containing the selected model, rationale, and native
-invocation shape. `--budget` is a difficulty bar (`low`, `medium`, or `high`),
-not a currency amount. Use a private config for actual costs and assignments.
+## Example table (fill in your own)
 
-## Configuration layering
+The rows below are illustrative placeholders, not a recommendation — replace
+model ids, tiers, and scores with what's actually available to you and your
+own read of pricing/evals. Scores are 1–10 on each axis.
 
-`loadConfig(defaultPath, userPath)` reads YAML or JSON. If `userPath` is
-omitted, it uses `MODEL_ROUTER_CONFIG`. User models replace defaults with the
-same `id` and append new IDs; threshold fields merge individually. This makes
-it safe to commit a generic baseline while keeping local assignments private.
+| role | axis | example model | tier | notes |
+|---|---|---|---|---|
+| Coordinator | orchestration | *your mid-cost general model* | frontier subscription | Plans and dispatches; doesn't implement inline. |
+| Bulk / mechanical implementer | coding | *your cheapest capable model* | frontier subscription or API | Clear, bounded changes; escalate only on failure. |
+| Hard-but-bounded implementer | coding | *your top coding-tier model* | frontier API | Deliberate use for genuinely difficult, clearly-scoped work. |
+| Open-ended / exploratory | orchestration | *your top orchestration-tier model* | frontier subscription or API | Ambiguous investigation, multi-tool planning. |
+| Reviewer (fresh context) | matches the diff's dominant axis | *independent of whoever authored the diff* | any | Inspect the diff and tests; don't ask it to redo the implementation. |
+| Taste-critical generation | taste | *your highest-taste model* | frontier subscription or API | Net-new visual/API/copy design, spent deliberately. |
 
-```yaml
-# models.private.yaml
-models:
-  - id: provider/medium
-    tier: frontier-api
-    cost: 2.5
-    scores: { cost: 8, coding: 7, orchestration: 6, taste: 5 }
-    notes: Locally evaluated configuration.
-  - id: my-provider/private-model
-    tier: local
-    cost: 0
-    scores: { cost: 10, coding: 6, orchestration: 5, taste: 4 }
-thresholds:
-  high: 9
-```
+## Per-harness notes
 
-See [`src/config/default.config.yaml`](src/config/default.config.yaml) for the
-complete schema and [`docs/CONCEPTS.md`](docs/CONCEPTS.md) for the routing
-mental model. To integrate another harness, read
-[`docs/WRITING_A_DRIVER.md`](docs/WRITING_A_DRIVER.md).
+Different harnesses expose different levers for the same decision:
 
-## Development
+- Some tools take a per-call model override plus an explicit effort/thinking
+  level (e.g. off/low/medium/high).
+- Others default to a fixed session model and expect you to invoke a
+  different tool/CLI directly for an alternate vendor, rather than passing a
+  model parameter.
 
-```sh
-npm install
-npm run build
-npm test
-```
+Translate the table above into whatever your harness's actual invocation
+shape is — a model id plus, if supported, an effort level chosen the same way
+you chose the model (cheap default, escalate deliberately).
 
-MIT © bdbaraban.
+## Adapting this
+
+1. Copy the example table and replace it with models you can actually invoke.
+2. Note your pricing basis and revisit it on a cadence — this drifts fast.
+3. Keep the framework section as-is unless your actual reasoning changes;
+   keep the table as the part you expect to edit often.
+
+## License
+
+MIT
