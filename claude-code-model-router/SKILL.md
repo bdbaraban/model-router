@@ -5,16 +5,17 @@ description: Pick which model to use for a dispatched Task/subagent call or a se
 
 # Model router
 
-The routing table in your `CLAUDE.md`/`AGENTS.md` ("Model routing for
-dispatched work") is advisory — nothing mechanically enforces it. This skill
+The routing table in your `CLAUDE.md`/`AGENTS.md` ("Picking the Right Models
+for Workflows and Subagents") is advisory — nothing mechanically enforces it. This skill
 exists so every `Task` dispatch, fan-out, or escalation call actively
 consults the table instead of defaulting to whatever model is already
 running the session.
 
 ## 1. Read the current table
 
-Read `CLAUDE.md` (or `AGENTS.md`), section "Model routing for dispatched
-work," for the live `cost` / `coding` / `orchestration` / `taste` table and
+Read `CLAUDE.md` (or `AGENTS.md`), section "Picking the Right Models for
+Workflows and Subagents," for the live `cost` / `coding` / `orchestration` /
+`taste` table and
 per-model names. Don't hardcode scores here — that table gets revised as
 pricing/evals change; this skill only encodes the *decision procedure*, not
 the numbers.

@@ -1,17 +1,13 @@
 # model-router
 
-A routing table you can pull into your own harness to decide which model
-handles delegated work — coordinator vs. implementer vs. reviewer, cheap vs.
-frontier, escalate or don't — instead of always dispatching to whatever
-model is already running the session.
-
 ## What you're installing
 
 | File | What it does |
 | --- | --- |
-| [`routing-table.md`](routing-table.md) | The framework and an empty table you fill in with your own models. Paste it into your `AGENTS.md`/`CLAUDE.md` as a new section. |
-| [`pi-model-router`](pi-model-router/) | A `pi` skill: teaches `pi` when to consult the table before an ad hoc `subagent` dispatch, fan-out, or escalation. |
-| [`claude-code-model-router`](claude-code-model-router/) | The same skill adapted for Claude Code's `Task` dispatch and `/model` escalation. |
+| [`routing-table.md`](routing-table.md) | The rules and model table you put in your `AGENTS.md`/`CLAUDE.md` so your agent knows which model to hand delegated work to. |
+| [`pi-model-router`](pi-model-router/) | Teaches `pi` to consult the table before an ad hoc `subagent` dispatch, fan-out, or escalation. |
+| [`claude-code-model-router`](claude-code-model-router/) | The same, for Claude Code's `Task` dispatch and `/model` escalation. |
+| [`codex-model-router`](codex-model-router/) | The same, for a `codex exec` dispatch — pins `-m` and `-c model_reasoning_effort` explicitly per the table instead of relying on `config.toml` defaults. |
 
 Only install the harness folder(s) you actually use. `routing-table.md` is
 required either way — the skills just tell an agent *when* to open it; they
@@ -19,11 +15,11 @@ don't duplicate the table.
 
 ---
 
-## Installation
+# Installation Instructions
 
-### Option 1: ask your agent to install it
+### Option 1) Ask your agent to install
 
-Paste this to your agent and it'll do the file moves for you:
+Paste this to your agent and it'll do it for you:
 
 ```text
 Clone this repo to /tmp/ and set it up for me:
@@ -32,24 +28,29 @@ Clone this repo to /tmp/ and set it up for me:
 
 1. Append the contents of /tmp/model-router/routing-table.md to my AGENTS.md
    (or CLAUDE.md) as a new section, verbatim — don't reword, summarize, or
-   shorten it. If a "Model routing for dispatched work" section already
-   exists there, ask me before overwriting it instead of duplicating it.
-2. Ask me which harness(es) I use: pi, Claude Code, or both.
+   shorten it. If a "Picking the Right Models for Workflows and Subagents"
+   section already exists there, ask me before overwriting it instead of
+   duplicating it.
+2. Ask me which harness(es) I use: pi, Claude Code, Codex CLI, or some
+   combination.
 3. For each harness I name, copy that harness's skill folder
-   (pi-model-router/ or claude-code-model-router/) into wherever that
-   harness's skills live on this machine (usually ~/.pi/agent/skills/ for
-   pi, ~/.claude/skills/ for Claude Code — ask me if you can't tell), and
-   rename the copied folder to model-router/ so its skill name matches its
-   frontmatter.
-4. Copy the SKILL.md exactly as written — don't rewrite, reword, or improve
-   it, it's a prompt and the wording is deliberate.
-5. Once installed, go fill in the table in AGENTS.md/CLAUDE.md with models
-   you actually have access to — the shipped table is empty on purpose.
-6. Tell me in one short paragraph what got installed and what I still need
-   to fill in myself.
+   (pi-model-router/, claude-code-model-router/, or codex-model-router/) into
+   wherever that harness's skills live on this machine — usually
+   ~/.pi/agent/skills/ for pi, ~/.claude/skills/ for Claude Code,
+   ~/.codex/skills/ for Codex CLI — and rename the copied folder to
+   model-router/ so its directory name matches its frontmatter.
+4. Copy the SKILL.md exactly as written. Do not rewrite, reword, shorten, or
+   improve any SKILL.md. These are prompts, and the specific wording is what
+   makes them work.
+5. Once installed, tell me the table in AGENTS.md/CLAUDE.md ships with my
+   real model names and scores as a starting template — go check they still
+   match what I actually pay for and have access to.
+6. When you're done, write me one paragraph covering what these skills do
+   and how you'll know when to use them. No jargon, speak coherently, keep
+   it simple and short, like one human talking to another.
 ```
 
-### Option 2: do it yourself
+### Option 2) Run the commands yourself
 
 ```sh
 git clone https://github.com/bdbaraban/model-router
@@ -61,35 +62,97 @@ cat routing-table.md >> ~/AGENTS.md   # or wherever your AGENTS.md/CLAUDE.md liv
 # 2. Install the skill(s) for the harness(es) you use
 cp -R pi-model-router ~/.pi/agent/skills/model-router
 cp -R claude-code-model-router ~/.claude/skills/model-router
+cp -R codex-model-router ~/.codex/skills/model-router
 ```
 
-Then open the table you just pasted in and replace the empty rows with
-models you can actually invoke, their ids, and your own read of their cost
-and skill on each axis.
+The table in `routing-table.md` ships with a real model lineup and real
+scores as a starting template, not empty placeholders — <u>**edit the model
+names and scores to match what you actually pay for and have access
+to**</u>.
 
-> **Read the SKILL.md before you install it**, not just the folder name. The
-> wording is what makes an agent actually reach for it instead of ignoring
-> it — retype the parts that don't match how you work rather than installing
-> it blind.
+> **Copy the text, don't just install the folder.** Open the `SKILL.md`, read
+> it, and retype the parts you want. You'll get a feel for why one skill
+> keeps getting used and another just sits there, and you'll end up with a
+> version that fits how you work. The install commands are here if you'd
+> rather start from a working copy and edit it from there.
 
-## Why the table ships empty
+<details>
+<summary><b>How to set it up, step by step</b></summary>
 
-Concrete model assignments go stale fast — vendors reprice, promos expire,
-new models ship. The decision procedure (tier × role × axis, cheapest-that-
-clears-the-bar, deliberate escalation) is the part worth sharing; the actual
-model ids and scores are yours to own and revise on your own schedule.
+<br>
+
+### Step 1: Tell your agent when to route work
+
+Paste the rules from **[`routing-table.md`](routing-table.md)** into your
+`AGENTS.md` or `CLAUDE.md`.
+
+Do this first. A skill only fires when something decides to fire it. The
+skill file explains how to consult the table, but something still has to
+notice "this dispatch needs a model choice," and that call gets made on
+every delegation.
+
+`routing-table.md` has a table ranking models on cost, coding, orchestration,
+and taste, plus the rules for choosing between them. Change the names and
+numbers to match what you're actually paying for.
+
+### Step 2: Let pi route its subagent dispatches
+
+```sh
+# Copy the skill folder into ~/.pi/agent/skills/, or into your dotfiles if
+# you symlink them in. pi picks it up next session, nothing to restart.
+cp -R pi-model-router ~/.pi/agent/skills/model-router
+```
+
+**[`pi-model-router`](pi-model-router/)** fires before any one-off
+`subagent` call, fan-out, or escalation judgment — the dispatches that
+aren't already covered by a named, config-pinned role.
+
+Use it for a task-graph harness where the coordinator dispatches most
+implementation rather than editing inline.
+
+### Step 3: Let Claude Code route its Task dispatches
+
+```sh
+# Copy the skill folder into ~/.claude/skills/, or into your dotfiles if you
+# symlink them in. Claude Code picks it up next session, nothing to restart.
+cp -R claude-code-model-router ~/.claude/skills/model-router
+```
+
+**[`claude-code-model-router`](claude-code-model-router/)** fires before a
+`Task` dispatch, a fresh-context reviewer spin-up, or a session-level
+`/model` escalation.
+
+### Step 4: Let Codex CLI route its own delegated runs
+
+```sh
+# Copy the skill folder into ~/.codex/skills/, or into your dotfiles if you
+# symlink them in. Codex picks it up next session, nothing to restart.
+cp -R codex-model-router ~/.codex/skills/model-router
+```
+
+**[`codex-model-router`](codex-model-router/)** fires before a `codex exec`
+dispatch, and pins `-m` and `-c model_reasoning_effort` explicitly per the
+table instead of relying on `config.toml` defaults, which interactive CLI use
+can mutate.
+
+</details>
+
+## Why the table ships with real values, not empty placeholders
+
+A routing table only proves it works when it's actually one someone routes
+with day to day. Starting from a filled-in template also shows the shape
+scores should take — you're editing values, not inventing a schema. Expect
+to change the model names first; the numbers will drift as pricing and
+evals do.
 
 ## Adding another harness
 
-1. Copy an existing skill folder (`pi-model-router/` or
-   `claude-code-model-router/`) as a starting point.
-2. Rewrite the "Label and dispatch" and "Pick within budget" steps to match
-   that harness's actual dispatch mechanism (subagent tool, Task tool, a
-   CLI flag, whatever it has).
+1. Copy an existing skill folder as a starting point.
+2. Rewrite the dispatch-mechanics steps to match that harness's actual
+   delegation mechanism (a subagent tool, a Task tool, a CLI flag, whatever
+   it has).
 3. Keep the classification logic (step 2) and the "judge the result, not the
    price" closing principle — those don't change per harness.
 4. Send a PR.
 
-## License
-
-MIT
+Manual for now. I'll add an installer if it ever becomes annoying enough.
