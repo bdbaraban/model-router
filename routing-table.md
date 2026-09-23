@@ -32,9 +32,9 @@ Scores are 1–10, higher = better. `cost` is inverse (higher = cheaper).
 |-------|----|------|------|--------|---------------|-------|
 | gpt-5.6-luna  | `openai/gpt-5.6-luna`  | frontier-subscription | 10 | 7  | 5 | 4  |
 | gpt-5.6-terra | `openai/gpt-5.6-terra` | frontier-subscription | 9  | 8  | 7 | 6  |
-| gpt-5.6-sol   | `openai/gpt-5.6-sol`   | frontier-api          | 8  | 10 | 9 | 7  |
+| gpt-6-sol     | `openai/gpt-6-sol`     | frontier-api          | 9  | 10 | 9 | 7  |
 | sonnet-5      | `anthropic/claude-sonnet-5`  | frontier-subscription | 5 | 6 | 7 | 7  |
-| opus-5        | `anthropic/claude-opus-5`    | frontier-subscription | 4 | 9 | 9 | 8  |
+| opus-5.5      | `anthropic/claude-opus-5-5`  | frontier-subscription | 5 | 9 | 10 | 8  |
 | fable-5.1     | `anthropic/claude-fable-5-1` | frontier-subscription | 2 | 9 | 8 | 10 |
 
 ## How to apply it
@@ -48,9 +48,9 @@ Scores are 1–10, higher = better. `cost` is inverse (higher = cheaper).
   high-volume, low-ambiguity recon (greps, lookups), try a cheaper tier
   first (`gpt-5.6-luna`) and fall back up only if quality suffers.
 - **Hard-but-bounded** — clear goal, genuinely difficult → still `coding`-led,
-  your top coding tier (`gpt-5.6-sol`), high effort. Deliberate, not default.
+  your top coding tier (`gpt-6-sol`), high effort. Deliberate, not default.
 - **Open-ended / multi-tool exploration** → weigh `orchestration`, your top
-  orchestration tier (`opus-5` or `gpt-5.6-sol`) first; a cheaper coordinator-
+  orchestration tier (`opus-5.5` or `gpt-6-sol`) first; a cheaper coordinator-
   tier model when the exploration is narrow enough not to need it.
 - **User-facing work** still gets dispatched to a coding-led model; enforce
   the taste bar (≥ 7) at *review* by judging the rendered result against a
@@ -148,8 +148,8 @@ effort explicitly per role rather than relying on inherited defaults:
 | researcher / recon | gpt-5.6-luna | `low` | cheap, high-volume lookups |
 | worker / mechanical implementer | gpt-5.6-terra | `medium` | vendor default for this tier, pinned explicitly instead of inherited |
 | planner | sonnet-5 | `high` | planning quality matters more than per-call cost; invoked far less often than the coordinator loop |
-| oracle / hard-but-bounded | gpt-5.6-sol | `high`, escalate to `xhigh` only when evals show a clear win | only escalate further when there's evidence it helps |
-| adversarial review | opus-5 | `high` | independent review is worth the premium tier |
+| oracle / hard-but-bounded | gpt-6-sol | `high`, escalate to `xhigh` only when evals show a clear win | only escalate further when there's evidence it helps |
+| adversarial review | opus-5.5 | `high` | independent review is worth the premium tier |
 
 Don't hold a session at `high`/`xhigh` by default — reserve escalation for
 the turn that actually needs it, then drop back down.
@@ -159,7 +159,7 @@ the turn that actually needs it, then drop back down.
 - `gpt-5.6-*` models are reached through whichever OpenAI-compatible
   provider account you have access to — pass the model straight to your
   harness's model parameter (e.g. `{ model: "openai/gpt-5.6-terra" }`).
-- `sonnet-5` / `opus-5` / `fable-5.1` run via your harness's own model
+- `sonnet-5` / `opus-5.5` / `fable-5.1` run via your harness's own model
   parameter for Claude models.
 - Label every dispatch `model:title` so the running model is visible at a
   glance, and state the per-wave model up front for any fan-out rather than
